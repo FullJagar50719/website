@@ -1,1 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Quick Notes</title>
+    <style>
+        :root {
+            --primary: #4F46E5;
+            --primary-hover: #4338CA;
+            --bg-color: #F3F4F6;
+            --card-bg: #FFFFFF;
+            --text-main: #1F2937;
+            --text-muted: #6B7280;
+        }
 
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        header h1 {
+            color: var(--primary);
+            font-size: 2.5rem;
+        }
+
+        /* Note Input Form */
+        .note-form {
+            background: var(--card-bg);
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .note-form input, .note-form textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #D1D5DB;
+            border-radius: 8px;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .note-form input:focus, .note-form textarea:focus {
+            border-color: var(--primary);
+        }
+
+        .note-form textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .note-form button {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.75rem;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .note-form button:hover {
+            background-color: var(--primary-hover);
+        }
+
+        /* Notes Display Grid */
+        .notes-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .note-card {
+            background: var(--card-bg);
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.05);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            word-wrap: break-word;
+        }
+
+        .note-card h3 {
+            margin-bottom: 0.5rem;
+            font-size: 1.25rem;
+        }
+
+        .note-card p {
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+            line-height: 1.5;
+            white-space: pre-wrap;
+        }
+
+        .delete-btn {
+            background-color: #EF4444;
+            color: white;
+            border: none;
+            padding: 0.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: background-color 0.2s;
+            align-self: flex-end;
+        }
+
+        .delete-btn:hover {
+            background-color: #DC2626;
+        }
+
+        .empty-message {
+            text-align: center;
+            color: var(--text-muted);
+            grid-column: 1 / -1;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>My Quick Notes</h1>
+            <p>Jot down your thoughts instantly.</p>
+        </header>
+
+        <div class="note-form">
+            <input type="text" id="note-title" placeholder="Note Title (Optional)">
+            <textarea id="note-text" placeholder="What's on your mind?..." required></textarea>
+            <button onclick="addNote()">Save Note</button>
+        </div>
+
+        <div class="notes-grid" id="notes-container">
+            </div>
+    </div>
+
+    <script>
+        // Load notes when the page starts
+        document.addEventListener('DOMContentLoaded', loadNotes);
+
+        function addNote() {
+            const titleInput = document.getElementById('note-title');
+            const textInput = document.getElementById('note-text');
+            
+            const title = titleInput.value.trim();
+            const text = textInput.value.trim();
+
+            if (!text) {
+                alert('Please enter some text for your note!');
+                return;
+            }
+
+            const note = {
+                id: Date.now(),
+                title: title || 'Untitled Note',
+                text: text
+            };
+
+            // Get existing notes, add the new one, and save back to local storage
+            const notes = getNotesFromStorage();
+            notes.push(note);
+            saveNotesToStorage(notes);
+
+            // Clear inputs and refresh display
+            titleInput.value = '';
+            textInput.value = '';
+            loadNotes();
+        }
+
+        function deleteNote(id) {
+            let notes = getNotesFromStorage();
+            notes = notes.filter(note => note.id !== id);
+            saveNotesToStorage(notes);
+            loadNotes();
+        }
+
+        function getNotesFromStorage() {
+            const notes = localStorage.getItem('myNotes');
+            return notes ? JSON.parse(notes) : [];
+        }
+
+        function saveNotesToStorage(notes) {
+            localStorage.setItem('myNotes', JSON.stringify(notes));
+        }
+
+        function loadNotes() {
+            const container = document.getElementById('notes-container');
+            const notes = getNotesFromStorage();
+            
+            container.innerHTML = '';
+
+            if (notes.length === 0) {
+                container.innerHTML = '<p class="empty-message">No notes yet. Create one above!</p>';
+                return;
+            }
+
+            // Loop through notes in reverse so newest is first
+            [...notes].reverse().forEach(note => {
+                const noteElement = document.createElement('div');
+                noteElement.className = 'note-card';
+                noteElement.innerHTML = `
+                    <div>
+                        <h3>${note.title}</h3>
+                        <p>${note.text}</p>
+                    </div>
+                    <button class="delete-btn" onclick="deleteNote(${note.id})">Delete</button>
+                `;
+                container.appendChild(noteElement);
+            });
+        }
+    </script>
+</body>
+</html>
